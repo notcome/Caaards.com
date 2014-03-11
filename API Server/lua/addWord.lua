@@ -1,6 +1,6 @@
--- addWord.lua (word star) (notes)
+-- addWord.lua (word, star) (notes)
 
-if redis.call('EXISTS', KEYS[1]) then
+if redis.call('EXISTS', KEYS[1]) == 1 then
   return false
 end
 
