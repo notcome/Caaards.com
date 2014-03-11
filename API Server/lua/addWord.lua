@@ -1,13 +1,10 @@
---[[
-  addWord.lua (word star) (notes)
-  1. check the existence of word
-]]-- 
+-- addWord.lua (word star) (notes)
 
-if redis.pcall('EXISTS', KEYS[1]) then
+if redis.call('EXISTS', KEYS[1]) then
   return false
 end
 
-return {
-  redis.pcall('SET', KEYS[1], ARGV[1]),
-  redis.pcall('INCR', KEYS[2])
-}
+redis.call('SET', KEYS[1], ARGV[1]),
+redis.call('INCR', KEYS[2])
+
+return true
