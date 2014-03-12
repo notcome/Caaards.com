@@ -1,7 +1,8 @@
-var redis, config, handler = {};
+var redis, config, handler = {}, verifySignautre;
 
 module.exports = function (_config, _redis) {
   config = _config, redis = _redis;
+  verifySignautre = require('./signature')(config.auth.auth_tlt);
   return exports;
 }
 
@@ -34,8 +35,6 @@ function getPassword (username, cb) {
   redis.get([config.prefix, 'auth', username].join('.'), cb);
 }
 
-var verifySignautre = require('./signature')(config.auth.auth_tlt);
-
 function writeResponse (res, code, obj) {
   var content = JSON.stringify(obj);
 
@@ -48,5 +47,5 @@ function route (req, res) {
   if (handler[req.pathname])
     handler[req.pathname](req, res, writeResponse);
   else
-    writeResponse(res, 404, {error: config.errors.404});
+    writeResponse(res, 404, {error: config.errors[404]});
 }

@@ -1,12 +1,12 @@
 var crypto = require('crypto');
 var querystring = require('querystring');
 
-var TLT = 5; //Timestamp Live Time
+var TLT;
 
 function textToSignature (content, key) {
-  var signatory = crypto.createHmac('sha1', key);
-  signatory.update(content);
-  return new Buffer(signatory.digest()).toString('base64');
+  var hmac = crypto.createHmac('sha1', key);
+  hmac.update(content);
+  return new Buffer(hmac.digest()).toString('base64');
 }
 
 function generateSignature (method, path, query, key) {
@@ -16,7 +16,7 @@ function generateSignature (method, path, query, key) {
 
 function timestampExpired (timestamp) {
   timestamp = parseInt(timestamp);
-  var now = new Date.getTime();
+  var now = new Date().getTime();
   if (timestamp > now) return true;
   if (now - timestamp > TLT * 1000) return true;
   return false;
