@@ -1,0 +1,8 @@
+{
+  "https": {
+    "port": 8663,
+    "host": "api.caaards.com",
+    "key": "./secrets/key.pem",
+    "cert": "./secrets/cert.pem"
+  }
+}

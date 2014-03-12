@@ -1,23 +1,12 @@
 var https = require('https');
 var fs = require('fs');
 
-var options = {
-  key: fs.readFileSync('./secrets/key.pem', {encoding: 'utf8'}),
-  cert: fs.readFileSync('./secrets/cert.pem', {encoding: 'utf8'})
-};
-
-/*
-module.exports = function (config) {
-
+module.exports = function (config, on_request) {
+  var options = {
+    key: fs.readFileSync(config.key, {encoding: 'utf8'}),
+    cert: fs.readFileSync(config.cert, {encoding: 'utf8'}),
+  };
+  var server = https.createServer(options, on_request);
+  server.listen(config.port, config.host);
+  return server;
 }
-*/
-
-console.log(options.key);
-console.log(options.cert);
-
-var server = https.createServer(options, function (req, res) {
-  res.writeHead(200);
-  res.end("hello world\n");
-});
-
-server.listen(8888);
