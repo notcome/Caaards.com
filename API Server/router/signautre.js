@@ -22,9 +22,18 @@ function timestampExpired (timestamp) {
   return false;
 }
 
-function verifySignature (method, path, query) {
+function verifySignature (req, key) {
+  var method = req.method,
+    pathname = req.pathname,
+       query = new Object(req.query);
+
   if (timestampExpired(query.timestamp)) return false;
   var signature = query.signature;
   delete query.signature;
-  return signature == generateSignature(method, path, query);
+  return signature == generateSignature(method, pathname, query, key);
+}
+
+module.exports = function (auth_tlt) {
+  if (auth_tlt) TLT = auth_tlt;
+  return verifySignature;
 }
