@@ -8,6 +8,6 @@ else
 end
 
 local star = tonumber(redis.call('GET', KEYS[2]))
-local time = ARGV[1] + intervals[star] * (1 + ARGV[3])
+local time = ARGV[1] + intervals[star] * (1 + ARGV[3]) * 60 * 1000
 
 return redis.call('ZADD', KEYS[1], time, ARGV[2])
