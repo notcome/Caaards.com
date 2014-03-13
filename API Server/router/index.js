@@ -26,8 +26,8 @@ exports = {
     });
   },
 
-  on: function (path, cb) {
-    handler[path] = cb;
+  on: function (path, method, cb) {
+    handler[path] = {func: cb, type: method};
   }
 }
 
@@ -46,8 +46,26 @@ function returnJSON (code, obj) {
 }
 
 function route (req, res) {
-  if (handler[req.pathname])
-    handler[req.pathname](req, res);
-  else
-    res.returnJSON(404, {error: config.errors[404]});
+  var next = handler[req.pathname];
+  if (next == null)
+    return res.returnJSON(404, {error: config.errors[404]});
+  else if (next.type != req.method)
+    return res.returnJSON(200, {error: config.errors.wrong_api_format});
+
+  next = next.func;
+  //In case of being recognized as cold data
+  redis.zadd([config.prefix, 'active-record'].join('.'), 
+      new Date().getTime(), req.query.username);
+
+  if (req.method == 'POST') {
+    var postData = '';
+    req.setEncoding('utf8');
+    req.on('data', function (chunk) {
+      postData += chunk;
+    });
+    req.on('end', function () {
+      next(req, res, postData);
+    });
+  }
+  else next(req, res);
 }
