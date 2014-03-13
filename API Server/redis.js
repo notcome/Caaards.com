@@ -6,5 +6,7 @@ module.exports = function (config) {
     client.auth(config.auth, function (err) {
       if (err) throw err;
     });
+  //load Lua scripts
+  require('./lua')(client);
   return client;
 }
