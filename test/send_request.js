@@ -17,7 +17,7 @@ var options = {
   rejectUnauthorized: false
 };
 
-module.exports = function (method, path, query, key) {
+module.exports = function (method, path, query, key, post_data) {
   query.timestamp = new Date().getTime();
   query.version = 1;
   delete query.signature;
@@ -34,6 +34,10 @@ module.exports = function (method, path, query, key) {
       console.log(d.toString('utf8'));
     });
   });
+  if (method == 'POST') {
+    post_data = JSON.stringify(post_data);
+    req.write(post_data);
+  }
   req.end();
 
   req.on('error', function(e) {

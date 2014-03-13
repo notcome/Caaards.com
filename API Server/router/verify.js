@@ -1,4 +1,4 @@
-var config, redis
+var config, redis;
 
 function timestampExpired (timestamp) {
   timestamp = parseInt(timestamp);
