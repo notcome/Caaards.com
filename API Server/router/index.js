@@ -26,7 +26,7 @@ exports = {
     });
   },
 
-  on: function (path, method, cb) {
+  register: function (path, method, cb) {
     handler[path] = {func: cb, type: method};
   }
 }
@@ -64,8 +64,8 @@ function route (req, res) {
       postData += chunk;
     });
     req.on('end', function () {
-      next(req, res, postData);
+      next(req, res, config, redis, postData);
     });
   }
-  else next(req, res);
+  else next(req, res, config, redis);
 }
