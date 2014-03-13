@@ -9,5 +9,5 @@ module.exports = function (req, res, config, redis) {
     if (reply == null)
       return res.returnJSON(200, config.errors.word_not_existed);
     res.returnJSON(200, 'succeed');
-  })
+  });
 };
