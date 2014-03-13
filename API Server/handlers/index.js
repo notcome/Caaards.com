@@ -4,7 +4,8 @@ var load_list = {
   '/auth': 'GET',
 
   '/delete-word': 'GET',
-  '/add-word': 'POST'
+  '/add-word': 'POST',
+  '/get-word': 'GET'
 };
 
 function load_handlers (register) {
