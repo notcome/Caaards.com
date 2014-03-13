@@ -2,7 +2,7 @@
   "https": {
     "port": 8663,
     "host": "api.caaards.com",
-    "key": "./secrets/key.pem",
+     "key": "./secrets/key.pem",
     "cert": "./secrets/cert.pem"
   },
   "redis": {
@@ -11,8 +11,12 @@
   },
   "prefix": "com.caaards.api",
   "errors": {
-    "user_not_existed": "User not existed",
-    "auth_failed": "Auth failed",
+    "auth": {
+      "timestamp_expired": "Timestamp expired.",
+      "user_not_existed": "User not existed.",
+      "auth_failed": "Auth failed.",
+      "auth_version_not_supported": "Auth version not supported."
+    },
     "404": "Command not found"
   },
   "auth": {
