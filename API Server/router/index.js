@@ -1,22 +1,28 @@
-var redis, config, handler = {}, verifySignautre;
+var url = require('url');
+var qs = require('querystring');
+
+var redis, config, verifySignautre;
+var handler = {}
+
+var log = require('console').log;
 
 module.exports = function (_config, _redis) {
   config = _config, redis = _redis;
-  verifySignautre = require('./signature')(config.auth.auth_tlt);
+  verifySignautre = require('./verify')(config, redis);
   return exports;
 }
 
 exports = {
   onRequest: function (req, res) {
     parseRequest(req);
-
-    getPassword(req.query.username, function (err, pass) {
-      if (err) throw err;
-      else if (pass == null)
-        writeResponse(res, 200, {error: config.errors.user_not_existed});
-      else if (!verifySignautre(req, pass))
-        writeResponse(res, 200, {error: config.errors.auth_failed});
-      else route(req, res);
+    res.returnJSON = returnJSON;
+    verifySignautre(req, function (server_err, auth_err) {
+      if (server_err) throw server_err;
+      
+      if (auth_err) 
+        res.returnJSON(200, {error: auth_err});
+      else 
+        route(req, res);
     });
   },
 
@@ -26,26 +32,22 @@ exports = {
 }
 
 function parseRequest (req) {
-  var parsed = require('url').parse(req.url);
-  req.query = require('querystring').parse(parsed.query);
+  var parsed = url.parse(req.url);
+  req.query = qs.parse(parsed.query);
   req.pathname = parsed.pathname;
 }
 
-function getPassword (username, cb) {
-  redis.get([config.prefix, 'auth', username].join('.'), cb);
-}
-
-function writeResponse (res, code, obj) {
+function returnJSON (code, obj) {
   var content = JSON.stringify(obj);
 
-  res.writeHead(code, { 'Content-Type': 'application/json'});
-  res.write(content);
-  res.end();
+  this.writeHead(code, { 'Content-Type': 'application/json'});
+  this.write(content);
+  this.end();
 }
 
 function route (req, res) {
   if (handler[req.pathname])
-    handler[req.pathname](req, res, writeResponse);
+    handler[req.pathname](req, res);
   else
-    writeResponse(res, 404, {error: config.errors[404]});
+    res.returnJSON(404, {error: config.errors[404]});
 }
