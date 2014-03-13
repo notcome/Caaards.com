@@ -17,7 +17,11 @@
       "auth_failed": "Auth failed.",
       "auth_version_not_supported": "Auth version not supported."
     },
-    "404": "Command not found"
+    "404": "Command not found",
+    "500": "Internal Server Error",
+    "wrong_api_format": "Wrong API format. Please check the document or report this issue to your SDK's maintainers.",
+    "word_existed": "Word has existed",
+    "word_not_existed": "Word not exists"
   },
   "auth": {
     "auth_tlt": 5
