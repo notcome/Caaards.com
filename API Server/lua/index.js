@@ -5,6 +5,7 @@ module.exports = function (redis) {
   var scripts = fs.readdirSync('./lua');
   scripts.forEach(function (script_name) {
     if (script_name[0] == '.') return;
+    if (script_name == 'index.js') return;
     var script_code = fs.readFileSync('./lua/' + script_name, {encoding: 'utf8'});
     loadScript(redis, script_name.substr(0, script_name.length - 4), script_code);
   });
