@@ -1,82 +1,104 @@
 var fs = require('fs');
 var console = require('console');
 
-var src = fs.readFileSync('./QUUPDATE.lua', 'utf8');
-var arr = src.split('\n');
-
-
-function load_Lua_script (filename, encoding) {
-  if (encoding == null) encoding = 'utf8';
-  var source = fs.readFileSync(filename, encoding);
-
-  var lines = [];
-  source.split('\n').forEach(function (line) {
-    var i = line.length - 1;
-    while (line[i] == ' ') i --;
-    i ++;
-    lines.push(line.substr(0, i));
-  });
-  return lines;
+function removePercent (label) {
+  return label.substr(1, label.length - 2);
 }
-///%[A-z|_]+%/g
 
 function getMetadataPos (lines) {
   if (lines[0] != '--[[')
     throw {error: 'METADATA_HEAD_NOT_FOUND'};
   
-  var metadata_end = 1;
-  while (lines[metadata_end] != ']]--') {
-    metadata_end ++;
-    if (metadata_end == lines.length)
+  var endline = 1;
+  while (lines[endline] != ']]--') {
+    endline ++;
+    if (endline == lines.length)
       throw {error: 'METADATA_END_NOT_FOUND'};
   }
-
+  return endline;
 }
 
-function get_metadata (lines) {
-  if (lines[0] != '--[[')
-    throw {error: 'METADATA_HEAD_NOT_FOUND'};
-  
-  var metadata_end = 1;
-  while (lines[metadata_end] != ']]--') {
-    metadata_end ++;
-    if (metadata_end == lines.length)
-      throw {error: 'METADATA_END_NOT_FOUND'};
-  }
-
+function parseMetadata (lines) {
   var metadata = {};
-  lines.slice(1, metadata_end).forEach(function (info) {
+  lines.forEach(function (info) {
     var key = '', i = 0;
     while (info[i] != ':') key += info[i ++];
     //skip ': '
     i ++; i ++;
     metadata[key] = info.substr(i);
   });
-
   return metadata;
 }
 
-function process_metadata (raw) {
-  var metadata = {};
-  metadata.function_name = raw.name;
-  metadata.variables = {};
-  
-  function check_percent_and_set (array, obj, type) {
+function processMetadata(lines) {
+  var metadata = parseMetadata(lines);
+  var result = {};
+  result.func_name = metadata.name;
+  result.vars = {};
+
+  function checkPercentAndSet (array, varset, type) {
     var i = 1;
-    array.forEach(function (str) {
-      if (str[0] != '%' || str[str.length - 1] != '%')
+    array.forEach(function (label) {
+      if (label[0] == '%' && label[label.length - 1] == '%')
+        varset[label] = type + '[' + i ++ + ']';
+      else
         throw {error: 'METADATA_BAD_FORMAT'};
-      obj[str] = type + '[' + i ++ + ']';
     });
   }
-  
-  check_percent_and_set(raw.keys.split(', '), metadata.variables, 'KEYS');
-  check_percent_and_set(raw.argv.split(', '), metadata.variables, 'ARGV');
-  return metadata;
+
+  checkPercentAndSet(metadata.keys.split(', '), result.vars, 'KEYS');
+  checkPercentAndSet(metadata.argv.split(', '), result.vars, 'ARGV');
+  return result;
 }
 
 function processScript (lines) {
+  var meta_endline = getMetadataPos(lines);
+  var source = lines.slice(meta_endline + 1);
+  //1st line must be '--[['
+  var result = processMetadata(lines.slice(1, meta_endline));
+  result.source = source;
+  return result;
+}
 
+function replaceVars (script, scripts) {
+  script.funcs = [];
+  var source = script.source.join('\n');
+  var regexp = /%[A-z|_]+%/g;
+  var vars = source.match(regexp), template = source.split(regexp), replaced = [];
+
+  vars.forEach(function (label) {
+    if (script.vars[label])
+      replaced.push(script.vars[label]);
+    else if (scripts[label]) {
+      replaced.push(removePercent(label));
+      script.funcs.push(label);
+    }
+    else throw {error: 'UNKNOWN TOKEN: ' + label};
+  });
+
+  source = '';
+  for (var i = 0; i < template.length - 1; i ++)
+    source += template[i] + replaced[i];
+  source += template[template.length - 1];
+  script.source = source;
+}
+
+function indent(source) {
+  var lines = source.split('\n');
+  var result = '';
+  lines.forEach(function (line) {
+    result += '  ' + line + '\n';
+  });
+  return result;
+}
+
+function addExtFunction(script, scripts) {
+  if (script.funcs.length == 0)
+    return 'function ' + script.func_name + ' ([KEYS, ARGV])\n' + 
+            indent(script.source) + 'end\n';
+            
+  script.source = addExtFunction(scripts[script.funcs.pop()], scripts) + script.source;
+  return addExtFunction(script, scripts);
 }
 
 /*
@@ -84,6 +106,9 @@ function processScript (lines) {
  * accpetable commands. We could not add user-defined command to it. Therefore
  * we need to provide SHA of each script so user could invoke EVALSHA directly.
  */
+
+var RedisScripts = module.exports = function(client) {
+}
 
 RedisScripts.prototype = {
   load: function (directory, callback) {
@@ -93,18 +118,22 @@ RedisScripts.prototype = {
       if (filename[0] == '.') return;
       if (filename.substr(-4) != '.lua') return;
 
-//parseLuaScript
-//return
-//func_name: used by other script
-//command: used by redis client
-//variables: var list
-//source: source other than metadata
       var info = processScript(fs.readFileSync(directory + '/' + filename, 'utf8').split('\n'));
-      info.command = filename.substr(-4);
-      scripts[info.func_name] = info;
+      info.command = filename.substr(0, filename.length - 4);
+      scripts['%' + info.func_name + '%'] = info;
     });
+
+    for (var func_name in scripts)
+      replaceVars(scripts[func_name], scripts);
+    for (var func_name in scripts)
+      addExtFunction(scripts[func_name], scripts);
+
+    console.log(scripts['%word_add%'].source);
   }
 };
 
-var RedisScripts = module.exports = function(client) {
-}
+RedisScripts.prototype.load('./');
+
+
+///%[A-z|_]+%/g
+
