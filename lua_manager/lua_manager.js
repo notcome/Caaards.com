@@ -60,47 +60,6 @@ function processScript (lines) {
   return result;
 }
 
-function replaceVars (script, scripts) {
-  script.funcs = [];
-  var source = script.source.join('\n');
-  var regexp = /%[A-z|_]+%/g;
-  var vars = source.match(regexp), template = source.split(regexp), replaced = [];
-
-  vars.forEach(function (label) {
-    if (script.vars[label])
-      replaced.push(script.vars[label]);
-    else if (scripts[label]) {
-      replaced.push(removePercent(label));
-      script.funcs.push(label);
-    }
-    else throw {error: 'UNKNOWN TOKEN: ' + label};
-  });
-
-  source = '';
-  for (var i = 0; i < template.length - 1; i ++)
-    source += template[i] + replaced[i];
-  source += template[template.length - 1];
-  script.source = source;
-}
-
-function indent(source) {
-  var lines = source.split('\n');
-  var result = '';
-  lines.forEach(function (line) {
-    result += '  ' + line + '\n';
-  });
-  return result;
-}
-
-function addExtFunction(script, scripts) {
-  if (script.funcs.length == 0)
-    return 'function ' + script.func_name + ' ([KEYS, ARGV])\n' + 
-            indent(script.source) + 'end\n';
-            
-  script.source = addExtFunction(scripts[script.funcs.pop()], scripts) + script.source;
-  return addExtFunction(script, scripts);
-}
-
 /*
  * Multi Object in node-redis uses a predefined command list to generate
  * accpetable commands. We could not add user-defined command to it. Therefore
@@ -122,13 +81,8 @@ RedisScripts.prototype = {
       info.command = filename.substr(0, filename.length - 4);
       scripts['%' + info.func_name + '%'] = info;
     });
-
-    for (var func_name in scripts)
-      replaceVars(scripts[func_name], scripts);
-    for (var func_name in scripts)
-      addExtFunction(scripts[func_name], scripts);
-
-    console.log(scripts['%word_add%'].source);
+    //console.log(scripts);
+    console.log(require('./generate')(scripts));
   }
 };
 
